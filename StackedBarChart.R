@@ -3,9 +3,20 @@ library(data.table)
 library(plyr)
 library(here)
 
+# Replace the name of each student with an anonymous identifier
+# (Index of student name in sorted student list)
+anonymize <- function(name, students){
+  indx <- match(name, students)
+  return(paste0("S", indx))
+}
+
 # Read in data 
 records <- read.csv(here("records.csv"), header = TRUE)
-student_errors <- data.table(Student=records$Student, Class=records$Error.Class, Problem=records$Problem)
+
+# Create anonymous ids
+students <- sort(unique(records$Student))
+ids <- sapply(records$Student, anonymize, students)
+student_errors <- data.table(Student=ids, Class=records$Error.Class, Problem=records$Problem)
 
 # Generate all graphs
 for (x in c("FoodChain", "Family", "Total")){
