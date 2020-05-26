@@ -41,12 +41,10 @@ Most_Common_Count <- function(eps) {
 }
   
   
-# Read in data 
-if (FALSE) {
-  records <- read.csv(here("records.csv"), header = TRUE)
-  student_errors <- data.table(Student=records$Student, Class=records$Error.Class, Problem=records$Problem)
-  
-  x <- "Family"
+# Read in data
+records <- read.csv(here("records.csv"), header = TRUE)
+student_errors <- data.table(Student=records$Student, Class=records$Error.Class, Problem=records$Problem)
+for (x in c("FoodChain", "Family", "Total")){
   if (x == "FoodChain") {
     DT <- student_errors["Food Chain", on = "Problem"]
   } else if (x == "Family") {
@@ -58,23 +56,33 @@ if (FALSE) {
   student_counts <- DT[, .(rowCount = .N), by = Student]
   class_counts <- DT[, .(rowCount = .N), by = Class]
   errors_per_student <- count(DT, c("Student", "Class"))
-  #y <- Most_Common_Count(errors_per_student)
+
+  # Relative error frequency per student
+  if (x == "FoodChain") {
+    food_refs <- sapply(student_counts$Student, Relative_Error_Frequency, errors_per_student)
+  } else if (x =="Family") {
+    family_refs <- sapply(student_counts$Student, Relative_Error_Frequency, errors_per_student)
+  } else {
+    total_refs <- sapply(student_counts$Student, Relative_Error_Frequency, errors_per_student)
+  }
+  
+  # Most common counts for each class
+  mces <- Most_Common_Count(errors_per_student)
+  
+  #(x)
+  #print(summary(refs))
+  print(mces)
 }
 
-# Relative error frequency per student
-refs <- sapply(student_counts$Student, Relative_Error_Frequency, errors_per_student)
-
-boxplot(refs,
+boxplot(food_refs, family_refs, total_refs,
         main = "Relative error frequency (per student)",
-        xlab = "REF (%)",
-        ylab = "",
+        at = c(1,3,5),
+        names = c("Food\nChain", "Family", "Total"),
+        las = 2,
         col = "orange",
         border = "brown",
         horizontal = TRUE
 )
 
-# Most common counts for each class
-mces <- Most_Common_Count(errors_per_student)
-  
 sbc <- ggplot(data = mces, aes(x = Class)) + geom_bar(aes(fill = Count), position = position_stack(reverse = TRUE)) + coord_flip() + theme(legend.position = "top")
 
