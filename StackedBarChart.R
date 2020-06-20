@@ -1,5 +1,6 @@
 library(ggplot2)
 library(data.table)
+library(dplyr)
 library(plyr)
 library(here)
 
@@ -10,13 +11,20 @@ anonymize <- function(name, students){
   return(paste0("S", indx))
 }
 
+frequency <- function(count, total) {
+  per <- (count / total) * 100
+  return(paste0(round(per, digits = 2), "%"))
+}
+
 # Read in data 
-records <- read.csv(here("records.csv"), header = TRUE)
+records <- read.csv(here("records.csv"), header = TRUE) 
 
 # Create anonymous ids
 students <- sort(unique(records$Student))
 ids <- sapply(records$Student, anonymize, students)
-student_errors <- data.table(Student=ids, Class=records$Error.Class, Problem=records$Problem)
+temp <- data.table(Student=ids, Class=records$Error.Class, Problem=records$Problem)
+# filter out the no syntax errors
+student_errors <- filter(temp, Class != "No syntax errors")
 
 # Generate all graphs
 for (x in c("FoodChain", "Family", "Total")){
@@ -29,7 +37,9 @@ for (x in c("FoodChain", "Family", "Total")){
   }
   
   student_counts <- DT[, .(rowCount = .N), by = Student]
-  class_counts <- DT[, .(rowCount = .N), by = Class]
+  classes <- DT[, .(rowCount = .N), by = Class]
+  total <- sum(classes$rowCount)
+  class_counts <- data.table(Class=classes$Class, rowCount=classes$rowCount, Freq=sapply(classes$rowCount, frequency, total))
   errors_per_student <- count(DT, c("Student", "Class"))
   
   # Specify graph destination
